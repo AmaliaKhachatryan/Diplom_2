@@ -1,4 +1,4 @@
-package User;
+package user;
 
 public class DataUser {
     private String email;

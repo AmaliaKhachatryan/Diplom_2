@@ -4,6 +4,7 @@ import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
+import jdk.jfr.Description;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -19,7 +20,6 @@ public class OrderNotAuthorizedUserTest {
     private String ingredient3 = "61c0c5a71d1f82001bdaaa73";
 
     @BeforeClass
-
     public static void globalSetUp() {
         RestAssured.filters(
                 new RequestLoggingFilter(), new ResponseLoggingFilter(),
@@ -31,6 +31,7 @@ public class OrderNotAuthorizedUserTest {
         order = new CreateOrder();
     }
     @Test
+    @Description("Создать заказа неавторизованным клиентом")
     public void createOrderTest() {
         order.addIngredients(ingredient1);
         order.addIngredients(ingredient2);
@@ -43,7 +44,8 @@ public class OrderNotAuthorizedUserTest {
                 .body("order.number", notNullValue());
     }
     @Test
-    public void getUserOrderTest() {
+    @Description("Получить данные заказа неавторизованного клиента")
+    public void getUserOrdersWithoutTokenTest() {
         order.addIngredients(ingredient1);
         orderManager.getUserOrdersWithoutToken()
                 .assertThat()
@@ -52,6 +54,7 @@ public class OrderNotAuthorizedUserTest {
                 .body("message", equalTo("You should be authorised"));
    }
     @Test
+    @Description("Создать заказ с невалидным ингредиентом неавторизованным клиентом.")
     public void createOrderWithIncorrectIngredientTest() {
         order.addIngredients(RandomStringUtils.randomAlphabetic(10));
         orderManager.createOrderWithoutToken(order)
@@ -59,6 +62,7 @@ public class OrderNotAuthorizedUserTest {
                 .statusCode(500);
     }
     @Test
+    @Description("Создать заказ без ингредиента неавторизованным клиентом.")
     public void createOrderWithoutIngredientTest() {
         orderManager.createOrderWithoutToken(order)
                 .assertThat()

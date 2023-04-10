@@ -1,6 +1,7 @@
 package order;
 
-import User.*;
+import jdk.jfr.Description;
+import user.*;
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -17,14 +18,13 @@ public class OrderAuthorizedUserTest {
     private UserManager userManager;
     private OrderManager orderManager;
     private DataUser authorizedUser;
-    private Tokens tokens;
+    private Tokens token;
     private CreateOrder order;
     private String ingredient1 = "61c0c5a71d1f82001bdaaa7a";
     private String ingredient2 = "61c0c5a71d1f82001bdaaa79";
     private String ingredient3 = "61c0c5a71d1f82001bdaaa73";
 
     @BeforeClass
-
     public static void globalSetUp() {
         RestAssured.filters(
                 new RequestLoggingFilter(), new ResponseLoggingFilter(),
@@ -32,97 +32,69 @@ public class OrderAuthorizedUserTest {
     }
 
     @Before
+    @Description("Создать клиента")
     public void setUp() {
         userManager = new UserManager();
         authorizedUser = GeneratorUser.getRandom();
         userManager.createUser(authorizedUser);
         orderManager = new OrderManager();
         order = new CreateOrder();
-        tokens = userManager.login(LoginUser.from(authorizedUser))
+        token = userManager.login(LoginUser.from(authorizedUser))
                 .extract().body()
                 .as(Tokens.class);
     }
 
     @After
+    @Description("Удалить клиента")
     public void removeUser() {
-        if (!(tokens.getAccessToken() == null)) {
-            userManager.removeUser(tokens.getAccessToken());
+        if (!(token.getAccessToken() == null)) {
+            userManager.removeUser(token.getAccessToken());
         }
     }
+
     @Test
+    @Description("Создать заказа авторизованным клиентом")
     public void createOrderTest() {
+        order.addIngredients(ingredient1);
         order.addIngredients(ingredient2);
         order.addIngredients(ingredient3);
-        orderManager.createOrder(tokens.getAccessToken(), order)
+        orderManager.createOrder(token.getAccessToken(), order)
                 .assertThat()
                 .statusCode(200)
                 .body("success", is(true))
-                .body("order", notNullValue());
+                .body("order", notNullValue())
+                .body("order.ingredients._id", hasItems(ingredient1, ingredient2, ingredient3))
+                .body("order.status", equalTo("done"))
+                .body("order.owner.name", equalTo(authorizedUser.getName()))
+                .body("order.owner.email", equalTo(authorizedUser.getEmail().toLowerCase()));
     }
-    @Test
-    public void checkOrderIdTest() {
-        order.addIngredients(ingredient1);
-        order.addIngredients(ingredient2);
-        order.addIngredients(ingredient3);
-        orderManager.createOrder(tokens.getAccessToken(), order)
-                .assertThat()
-                .statusCode(200)
-                .body("order.ingredients._id", hasItems(ingredient1,ingredient2,ingredient3));
 
-    }
     @Test
-    public void checkOrderStatusTest() {
-        order.addIngredients(ingredient1);
-        order.addIngredients(ingredient2);
-        order.addIngredients(ingredient3);
-        orderManager.createOrder(tokens.getAccessToken(), order)
-                .assertThat()
-                .statusCode(200)
-                .body("order.status",equalTo("done"));
-
-    }
-    @Test
-    public void checkOrderOwnerTest() {
-        order.addIngredients(ingredient1);
-        order.addIngredients(ingredient3);
-        orderManager.createOrder(tokens.getAccessToken(), order)
-                .assertThat()
-                .statusCode(200)
-                .body("order.owner.name",equalTo(authorizedUser.getName()))
-                .body("order.owner.email",equalTo(authorizedUser.getEmail().toLowerCase()));
-
-    }
-    @Test
+    @Description("Получить данные заказа авторизованного клиента")
     public void getUserOrderTest() {
         order.addIngredients(ingredient1);
-        orderManager.createOrder(tokens.getAccessToken(), order);
-        orderManager.getUserOrders(tokens.getAccessToken())
+        orderManager.createOrder(token.getAccessToken(), order);
+        orderManager.getUserOrders(token.getAccessToken())
                 .assertThat()
                 .statusCode(200)
                 .body("success", is(true))
-                .body("orders", notNullValue());
-    }
-    @Test
-    public void checkGetUserOrderStatusTest() {
-        order.addIngredients(ingredient1);
-        orderManager.createOrder(tokens.getAccessToken(), order);
-        orderManager.getUserOrders(tokens.getAccessToken())
-                .assertThat()
-                .statusCode(200)
+                .body("orders", notNullValue())
                 .body("orders.status", hasItems("done"));
     }
 
-        @Test
-    public void createOrderWithIncorrectIngredientTest() {
+    @Test
+    @Description("Создать заказ с невалидным ингредиентом авторизованным клиентом.")
+    public void createOrderWithIncorrectIngredientByUserTest() {
         order.addIngredients(RandomStringUtils.randomAlphabetic(10));
-        orderManager.createOrder(tokens.getAccessToken(), order)
+        orderManager.createOrder(token.getAccessToken(), order)
                 .assertThat()
                 .statusCode(500);
     }
 
     @Test
-    public void createOrderWithoutIngredientTest() {
-        orderManager.createOrder(tokens.getAccessToken(), order)
+    @Description("Создать заказ без ингредиента авторизованным клиентом.")
+    public void createOrderWithoutIngredientByUserTest() {
+        orderManager.createOrder(token.getAccessToken(), order)
                 .assertThat()
                 .statusCode(400)
                 .body("success", is(false))

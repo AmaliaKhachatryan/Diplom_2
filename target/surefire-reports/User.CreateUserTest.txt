@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
-Test set: User.CreateUserTest
+Test set: user.CreateUserTest
 -------------------------------------------------------------------------------
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 15.593 s - in User.CreateUserTest
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 17.547 s - in user.CreateUserTest

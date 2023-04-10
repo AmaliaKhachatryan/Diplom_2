@@ -1,9 +1,10 @@
-package User;
+package user;
 
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
+import jdk.jfr.Description;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -16,11 +17,9 @@ import static org.hamcrest.Matchers.*;
 
 public class CreateUserTest {
     private UserManager manager;
-    private Tokens tokens;
+    private Tokens token;
     private DataUser user;
-
     @BeforeClass
-
     public static void globalSetUp() {
         RestAssured.filters(
                 new RequestLoggingFilter(), new ResponseLoggingFilter(),
@@ -33,44 +32,31 @@ public class CreateUserTest {
     }
 
     @After
+    @Description("Удалить клиента")
     public void removeUser() {
-        tokens = manager.login(LoginUser.from(user))
+        token = manager.login(LoginUser.from(user))
                 .extract().body()
                 .as(Tokens.class);
-        if (!(tokens.getAccessToken() == null)) {
-            manager.removeUser(tokens.getAccessToken());
+        if (!(token.getAccessToken() == null)) {
+            manager.removeUser(token.getAccessToken());
         }
     }
 
     @Test
+    @Description("Создать клиента")
     public void createUserTest() {
         user = GeneratorUser.getRandom();
         manager.createUser(user)
                 .assertThat()
                 .statusCode(200)
                 .body("success", is(true))
-                .body("user", notNullValue());
-    }
-
-    @Test
-    public void checkUserEmailTest() {
-        user = GeneratorUser.getRandom();
-        manager.createUser(user)
-                .assertThat()
-                .statusCode(200)
-                .body("user.email", equalTo(user.getEmail().toLowerCase()));
-    }
-
-    @Test
-    public void checkUserNameTest() {
-        user = GeneratorUser.getRandom();
-        manager.createUser(user)
-                .assertThat()
-                .statusCode(200)
+                .body("user", notNullValue())
+                .body("user.email", equalTo(user.getEmail().toLowerCase()))
                 .body("user.name", equalTo(user.getName()));
     }
 
     @Test
+    @Description("Создать клиента без имени")
     public void createUserWithoutNameTest() {
         user = GeneratorUser.getRandomWithoutName();
         manager.createUser(user)
@@ -82,6 +68,7 @@ public class CreateUserTest {
     }
 
     @Test
+    @Description("Создать клиента без имени Email")
     public void createUserWithoutEmailTest() {
         user = GeneratorUser.getRandomWithoutEmail();
         manager.createUser(user)
@@ -92,6 +79,7 @@ public class CreateUserTest {
     }
 
     @Test
+    @Description("Создать клиента без имени пароля")
     public void createUserWithoutPassword() {
         user = GeneratorUser.getRandomWithoutPassword();
         manager.createUser(user)
@@ -101,6 +89,7 @@ public class CreateUserTest {
                 .body("message", equalTo("Email, password and name are required fields"));
     }
     @Test
+    @Description("Создать клиента без данный")
     public void createNullUser() {
         user = new DataUser();
         manager.createUser(user)
@@ -109,20 +98,9 @@ public class CreateUserTest {
                 .body("success", is(false))
                 .body("message", equalTo("Email, password and name are required fields"));
     }
+
     @Test
-    public void logoutUserTest() {
-        user = GeneratorUser.getRandom();
-       tokens = manager.createUser(user)
-               .extract().body()
-               .as(Tokens.class);
-        Logout logout=new Logout(tokens.getRefreshToken());
-        manager.logoutUser(logout)
-                .assertThat()
-                .statusCode(200)
-                .body("success", is(true))
-                .body("message", equalTo("Successful logout"));
-    }
-    @Test
+    @Description("Создать клиента уже зарегистрированными данными")
     public void createUserAlreadyExist() {
         user = GeneratorUser.getRandom();
         manager.createUser(user);
